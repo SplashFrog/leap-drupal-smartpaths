@@ -1,0 +1,14 @@
+name: 'Splash Frog - Smart Paths'
+description: 'Enables nested URL path functionality for nodes using parent content references.'
+type: 'Site-Building'
+install:
+  - node
+  - pathauto
+  - token
+  - views
+  - tagify
+config:
+  actions:
+    pathauto.settings:
+      addItem:
+        safe_tokens: parent_path

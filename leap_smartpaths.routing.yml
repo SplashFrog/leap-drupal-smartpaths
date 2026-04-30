@@ -1,0 +1,7 @@
+leap_smartpaths.settings:
+  path: '/admin/config/search/leap-smartpaths'
+  defaults:
+    _form: '\Drupal\leap_smartpaths\Form\SmartPathsSettingsForm'
+    _title: 'Smart Paths Settings'
+  requirements:
+    _permission: 'administer leap smartpaths'

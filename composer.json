@@ -1,0 +1,30 @@
+{
+  "name": "splashfrog/leap_smartpaths",
+  "description": "Enterprise state-aware hierarchical URL alias management for Drupal 11.",
+  "type": "drupal-module",
+  "homepage": "https://github.com/SplashFrog/leap-smartpaths",
+  "authors": [
+    {
+      "name": "Splash Frog",
+      "email": "contact@splashfrog.io",
+      "homepage": "https://splashfrog.io",
+      "role": "Maintainer"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/SplashFrog/leap-smartpaths/issues",
+    "source": "https://github.com/SplashFrog/leap-smartpaths.git"
+  },
+  "require": {
+    "php": ">=8.3",
+    "drupal/core": "^11.3",
+    "drupal/pathauto": "^1.12",
+    "drupal/token": "^1.11"
+  },
+  "autoload": {
+    "psr-4": {
+      "Drupal\\leap_smartpaths\\": "src/"
+    }
+  },
+  "license": "GPL-3.0-or-later"
+}

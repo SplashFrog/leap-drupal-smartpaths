@@ -1,0 +1,13 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: smart_paths
+label: 'Smart Paths'
+type: 'canonical_entities:node'
+pattern: '[node:parent_path]/[node:optional_title]'
+selection_criteria: {  }
+selection_logic: and
+weight: -5
+relationships: {  }

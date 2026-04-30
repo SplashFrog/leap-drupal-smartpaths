@@ -1,0 +1,11 @@
+services:
+  leap_smartpaths.logic:
+    class: Drupal\leap_smartpaths\SmartPathsService
+    arguments:
+      - '@entity_type.manager'
+      - '@pathauto.alias_cleaner'
+      - '@pathauto.alias_uniquifier'
+      - '@renderer'
+      - '@config.factory'
+      - '@module_handler'
+      - '@cache_tags.invalidator'

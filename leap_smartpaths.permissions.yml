@@ -1,0 +1,4 @@
+administer leap smartpaths:
+  title: 'Administer Smart Paths'
+  description: 'Configure settings for the Splash Frog Smart Paths module.'
+  restrict access: true

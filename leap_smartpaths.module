@@ -1,0 +1,201 @@
+<?php
+
+/**
+ * @file
+ */
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Hook implementations for the LEAP Starter - Smart Paths module.
+ *
+ * This module allows editors to define parent-child relationships between nodes
+ * to automatically generate highly structured, deeply nested URL aliases
+ * (e.g., /services/consulting/enterprise) via Pathauto tokens. It also handles
+ * the complex cascading of those URLs if a parent node is ever moved or renamed.
+ */
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Render\BubbleableMetadata;
+use Drupal\node\NodeInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ *
+ * Provides documentation and usage examples for the Smart Paths module,
+ * explaining the custom tokens and configuration options available.
+ */
+function leap_smartpaths_help(string $route_name, RouteMatchInterface $route_match): string {
+  if ($route_name === 'help.page.leap_smartpaths') {
+    $module_path = \Drupal::service('extension.list.module')->getPath('leap_smartpaths');
+    $command = "drush recipe $module_path/recipes/leap_smartpaths";
+
+    $output = '<h3>' . t('About') . '</h3>';
+    $output .= '<p>' . t('The Splash Frog Smart Paths module enables robust nested URL path functionality for nodes using parent content references, making it easy to create hierarchical site structures.') . '</p>';
+    $output .= '<h3>' . t('Installation Instructions') . '</h3>';
+    $output .= '<p>' . t('To configure the required parent content fields on your nodes, you must run the following Drush command from your project root:') . '</p>';
+    $output .= '<pre><code>' . $command . '</code></pre>';
+    $output .= '<h3>' . t('Custom Tokens') . '</h3>';
+    $output .= '<p>' . t('The module provides two custom tokens for use in Pathauto patterns:') . '</p>';
+    $output .= '<ul>';
+    $output .= '<li><code>[node:parent_path]</code>: ' . t('Recursively builds the URL prefix by traversing up the "Parent Page" (field_parent_content) entity reference chain.') . '</li>';
+    $output .= '<li><code>[node:optional_title]</code>: ' . t('Uses the "Optional Path" (field_optional_path) if provided, otherwise falls back to the standard node title. This allows editors to have long page titles but short URL slugs.') . '</li>';
+    $output .= '</ul>';
+    $output .= '<h3>' . t('Automated Alias Updates') . '</h3>';
+    $output .= '<p>' . t('When a parent node\'s alias is updated, the module automatically cascades the change down to all of its children, ensuring the entire hierarchical URL structure remains consistent.') . '</p>';
+    $output .= '<h3>' . t('Configuration & Ignored States') . '</h3>';
+    $output .= '<p>' . t('Site administrators can configure which Workflow States (e.g., Draft, Archived) should be ignored by the Smart Paths engine. An ignored node will not update its URL when its parent moves, nor will moving a parent into an ignored state trigger updates to its children. To configure this, visit the <a href="/admin/config/search/leap-smartpaths">Smart Paths Settings page</a>.') . '</p>';
+    $output .= '<h3>' . t('Smart Paths Service') . '</h3>';
+    $output .= '<p>' . t('Developers can access the URL generation and bulk-update logic via the <code>leap_smartpaths.logic</code> service.') . '</p>';
+
+    return $output;
+  }
+
+  return '';
+}
+
+/**
+ * Implements hook_token_info().
+ *
+ * Declares our two custom Pathauto tokens.
+ */
+function leap_smartpaths_token_info(): array {
+  $token_info = [
+    'parent_path' => [
+      'name' => t('Parent Paths'),
+      'description' => t('Build path from selected parent node. (Custom)'),
+    ],
+    'optional_title' => [
+      'name' => t('Optional Title'),
+      'description' => t('Create path from either the optional field or node title. (Custom)'),
+    ],
+  ];
+
+  return [
+    'types' => [
+      'node' => [
+        'name' => t('Nodes'),
+        'description' => t('Tokens related to the current node.'),
+        'needs-data' => 'node',
+      ],
+    ],
+    'tokens' => [
+      'node' => $token_info,
+    ],
+  ];
+}
+
+/**
+ * Implements hook_tokens().
+ *
+ * Provides the actual string replacements for the custom Pathauto patterns.
+ * NOTE: For `[node:parent_path]` to preserve its forward slashes during
+ * generation (rather than converting them to hyphens), 'parent_path' MUST
+ * be added to the pathauto 'safe_tokens' configuration array. Our module's
+ * recipe handles this automatically via Config Actions.
+ */
+function leap_smartpaths_tokens(string $type, array $tokens, array $data, array $options, BubbleableMetadata $bubbleable_metadata): array {
+  $replacements = [];
+
+  if ($type === 'node' && !empty($data['node']) && $data['node'] instanceof NodeInterface) {
+    /** @var \Drupal\leap_smartpaths\SmartPathsService $smart_paths */
+    $smart_paths = \Drupal::service('leap_smartpaths.logic');
+    $node = $data['node'];
+
+    foreach ($tokens as $name => $original) {
+      if ($name === 'parent_path') {
+        $path = $smart_paths->buildParentPagePath(NULL, $node, $options);
+        if ($path) {
+          $replacements[$original] = $path;
+        }
+      }
+      elseif ($name === 'optional_title') {
+        $title = $smart_paths->buildPageTitle($node, $options);
+        if ($title) {
+          $replacements[$original] = $title;
+        }
+      }
+    }
+  }
+
+  return $replacements;
+}
+
+/**
+ * Implements hook_pathauto_alias_alter().
+ *
+ * A thin routing hook that intercepts an entity immediately after its URL alias
+ * is modified by Pathauto. It applies state-based prefixes (e.g. /archived)
+ * and delegates the cascading update logic for hierarchical nodes.
+ */
+function leap_smartpaths_pathauto_alias_alter(string &$alias, array &$context): void {
+  // Identify the entity being processed by Pathauto.
+  $entity_type = $context['module'];
+  $entity = $context['data'][$entity_type] ?? NULL;
+
+  if (!$entity instanceof ContentEntityInterface) {
+    return;
+  }
+
+  /** @var \Drupal\leap_smartpaths\SmartPathsService $smart_paths */
+  $smart_paths = \Drupal::service('leap_smartpaths.logic');
+
+  // --- NEW: State Prefixing ---
+  // Apply the configured state prefix (e.g. /archived) to the alias.
+  // This now works for any content entity (Node, Media, etc.) that uses Pathauto.
+  $alias = $smart_paths->applyStatePrefix($alias, $entity);
+  // -----------------------------
+  // The following cascading logic is specifically for hierarchical structures.
+  // Currently, only Nodes use the field_parent_content field.
+  if (!$entity instanceof NodeInterface || $context['op'] !== 'update') {
+    return;
+  }
+
+  $node_alias = $entity->get('path')->alias;
+  $node_source = '/node/' . $entity->id();
+
+  // If the alias hasn't changed or is just the raw system path, there's
+  // nothing new to cascade down to children.
+  if ($node_alias === $node_source || $node_alias === $alias) {
+    return;
+  }
+
+  // The parent's URL has definitively changed (structurally).
+  // Cascade the update downwards to all children recursively.
+  $smart_paths->updateChildrenAliases($entity);
+}
+
+/**
+ * Implements hook_entity_presave().
+ *
+ * Enforces state-based alias prefixes for manual aliases (where Pathauto
+ * is disabled or the user has manually edited the alias field).
+ */
+function leap_smartpaths_entity_presave(EntityInterface $entity): void {
+  // Support any content entity (Nodes, Media, Taxonomy Terms, etc.) that has a path field.
+  if (!$entity instanceof ContentEntityInterface || !$entity->hasField('path')) {
+    return;
+  }
+
+  /** @var \Drupal\leap_smartpaths\SmartPathsService $smart_paths */
+  $smart_paths = \Drupal::service('leap_smartpaths.logic');
+
+  $path_item = $entity->get('path')->first();
+
+  // Only process if the path item exists and has a manual alias.
+  if ($path_item && !empty($path_item->alias)) {
+    $current_alias = $path_item->alias;
+
+    // Clean and Decorate the manual alias based on the current state.
+    $new_alias = $smart_paths->applyStatePrefix($current_alias, $entity);
+
+    // Update the entity property if a change is required.
+    if ($current_alias !== $new_alias) {
+      $smart_paths->uniquifyAlias($new_alias, $entity);
+      $path_item->alias = $new_alias;
+    }
+  }
+}

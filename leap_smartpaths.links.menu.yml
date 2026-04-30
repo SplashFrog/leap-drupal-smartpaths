@@ -1,0 +1,5 @@
+leap_smartpaths.settings:
+  title: 'Smart Paths'
+  description: 'Configure moderation state rules for cascading URL alias updates.'
+  parent: system.admin_config_search
+  route_name: leap_smartpaths.settings

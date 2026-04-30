@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_optional_path
+    - node.type.landing
+id: node.landing.field_optional_path
+field_name: field_optional_path
+entity_type: node
+bundle: landing
+label: 'Optional URL Name'
+description: 'Enter in an optional page name for this page if you do not want to use the default page name in the URL.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

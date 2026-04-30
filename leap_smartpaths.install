@@ -1,0 +1,29 @@
+<?php
+
+/**
+ * @file
+ */
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Installation and update functions for the LEAP Starter - Smart Paths module.
+ */
+
+/**
+ * Implements hook_install().
+ *
+ * Provides a post-installation messenger alert with the required Drush recipe
+ * command to attach the necessary path fields to the content types. Note that
+ * it explicitly instructs the user to apply the Content Lifecycle recipe first.
+ */
+function leap_smartpaths_install(): void {
+  // Dynamically determine the path for the recipe command.
+  $module_path = \Drupal::service('extension.list.module')->getPath('leap_smartpaths');
+  $command = "drush recipe $module_path/recipes/leap_smartpaths";
+
+  \Drupal::messenger()->addWarning(t('The Splash Frog Smart Paths module has been enabled. <strong>To configure the required parent content fields on your nodes, you must first apply the Content Lifecycle recipe, and then apply this associated recipe:</strong><br><br><code>@command</code>', [
+    '@command' => $command,
+  ]));
+}

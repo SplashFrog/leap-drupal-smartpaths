@@ -1,0 +1,21 @@
+leap_smartpaths.settings:
+  type: config_object
+  label: 'Smart Paths Settings'
+  mapping:
+    opt_out_states:
+      type: sequence
+      label: 'Opt-Out Moderation States'
+      sequence:
+        type: string
+    state_prefixes:
+      type: sequence
+      label: 'State Alias Prefixes'
+      sequence:
+        type: mapping
+        mapping:
+          state_id:
+            type: string
+            label: 'State ID'
+          prefix:
+            type: string
+            label: 'Prefix Slug'

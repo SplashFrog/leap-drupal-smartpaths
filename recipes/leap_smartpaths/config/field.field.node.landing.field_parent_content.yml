@@ -1,0 +1,24 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_parent_content
+    - node.type.landing
+id: node.landing.field_parent_content
+field_name: field_parent_content
+entity_type: node
+bundle: landing
+label: 'Parent Page'
+description: 'Select the parent page that this page will fall under.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: views
+  handler_settings:
+    view:
+      view_name: content_reference
+      display_name: content_select_reference
+      arguments: {  }
+field_type: entity_reference

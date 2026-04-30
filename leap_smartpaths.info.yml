@@ -1,0 +1,14 @@
+name: 'Splash Frog - Starter - Smart Paths'
+core_version_requirement: ^11.3
+type: module
+version: '2.0.0'
+configure: leap_smartpaths.settings
+description: "Provides a way to create a smart URL path, showcasing a 'Nesting' way of content."
+package: 'Splash Frog'
+dependencies:
+  - drupal:field
+  - drupal:node
+  - drupal:user
+  - drupal:pathauto
+  - drupal:token
+  - drupal:views
