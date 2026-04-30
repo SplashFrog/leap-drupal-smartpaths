@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\leap_smartpaths;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -345,6 +346,9 @@ final class SmartPathsService {
 
     $clean_title = $this->buildPageTitle($node);
     $new_alias = '/' . $parent_path . '/' . $clean_title;
+
+    // Apply the configured state prefix (e.g., /archived) to the new alias.
+    $new_alias = $this->applyStatePrefix($new_alias, $node);
 
     $source = '/node/' . $node->id();
     $langcode = $node->language()->getId();
